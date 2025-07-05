@@ -1,0 +1,45 @@
+{
+  "name": "arraypress/wp-color-utils",
+  "version": "1.0.0",
+  "description": "A lean WordPress library for essential color operations including conversions, adjustments, and accessibility helpers",
+  "type": "library",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://github.com/arraypress/wp-color-utils/",
+  "authors": [
+    {
+      "name": "David Sherlock",
+      "homepage": "https://arraypress.com/"
+    }
+  ],
+  "require": {
+    "php": ">=7.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "ArrayPress\\ColorUtils\\": "src/"
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true,
+    "preferred-install": "dist"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "support": {
+    "issues": "https://github.com/arraypress/wp-color-utils/issues",
+    "source": "https://github.com/arraypress/wp-color-utils"
+  },
+  "keywords": [
+    "wordpress",
+    "color",
+    "colors",
+    "hex",
+    "rgb",
+    "rgba",
+    "accessibility",
+    "contrast",
+    "utilities",
+    "arraypress"
+  ]
+}

@@ -234,4 +234,172 @@ class Color {
 		return self::rgb_to_hex( (int) round( $red ), (int) round( $green ), (int) round( $blue ) );
 	}
 
+	/**
+	 * Get complementary color (opposite on color wheel).
+	 *
+	 * @param string $hex Hexadecimal color code.
+	 *
+	 * @return string|null Complementary hex color or null if invalid.
+	 */
+	public static function get_complementary( string $hex ): ?string {
+		$rgb = self::hex_to_rgb( $hex );
+		if ( $rgb === null ) {
+			return null;
+		}
+
+		return self::rgb_to_hex(
+			255 - $rgb['red'],
+			255 - $rgb['green'],
+			255 - $rgb['blue']
+		);
+	}
+
+	/**
+	 * Calculate WCAG contrast ratio between two colors.
+	 *
+	 * @param string $color1 First hex color.
+	 * @param string $color2 Second hex color.
+	 *
+	 * @return float|null Contrast ratio (1-21) or null if invalid colors.
+	 */
+	public static function get_contrast_ratio( string $color1, string $color2 ): ?float {
+		$rgb1 = self::hex_to_rgb( $color1 );
+		$rgb2 = self::hex_to_rgb( $color2 );
+
+		if ( $rgb1 === null || $rgb2 === null ) {
+			return null;
+		}
+
+		// Calculate relative luminance for each color
+		$l1 = self::get_relative_luminance( $rgb1['red'], $rgb1['green'], $rgb1['blue'] );
+		$l2 = self::get_relative_luminance( $rgb2['red'], $rgb2['green'], $rgb2['blue'] );
+
+		// Ensure L1 is the lighter color
+		if ( $l2 > $l1 ) {
+			$temp = $l1;
+			$l1   = $l2;
+			$l2   = $temp;
+		}
+
+		// Calculate contrast ratio
+		return ( $l1 + 0.05 ) / ( $l2 + 0.05 );
+	}
+
+	/**
+	 * Calculate relative luminance according to WCAG 2.1.
+	 *
+	 * @param int $red   Red value (0-255).
+	 * @param int $green Green value (0-255).
+	 * @param int $blue  Blue value (0-255).
+	 *
+	 * @return float Relative luminance value.
+	 */
+	private static function get_relative_luminance( int $red, int $green, int $blue ): float {
+		// Convert RGB to sRGB
+		$rgb = [ $red / 255, $green / 255, $blue / 255 ];
+
+		// Apply gamma correction
+		foreach ( $rgb as $key => $val ) {
+			if ( $val <= 0.03928 ) {
+				$rgb[ $key ] = $val / 12.92;
+			} else {
+				$rgb[ $key ] = pow( ( $val + 0.055 ) / 1.055, 2.4 );
+			}
+		}
+
+		// Calculate luminance using WCAG formula
+		return 0.2126 * $rgb[0] + 0.7152 * $rgb[1] + 0.0722 * $rgb[2];
+	}
+
+	/**
+	 * Check if contrast ratio meets WCAG AA standard.
+	 *
+	 * @param string $color1     First hex color.
+	 * @param string $color2     Second hex color.
+	 * @param bool   $large_text Whether checking for large text (false = normal text).
+	 *
+	 * @return bool True if meets AA standard, false otherwise.
+	 */
+	public static function meets_wcag_aa( string $color1, string $color2, bool $large_text = false ): bool {
+		$ratio = self::get_contrast_ratio( $color1, $color2 );
+
+		if ( $ratio === null ) {
+			return false;
+		}
+
+		// AA standards: 4.5:1 for normal text, 3:1 for large text
+		$required_ratio = $large_text ? 3.0 : 4.5;
+
+		return $ratio >= $required_ratio;
+	}
+
+	/**
+	 * Check if contrast ratio meets WCAG AAA standard.
+	 *
+	 * @param string $color1     First hex color.
+	 * @param string $color2     Second hex color.
+	 * @param bool   $large_text Whether checking for large text (false = normal text).
+	 *
+	 * @return bool True if meets AAA standard, false otherwise.
+	 */
+	public static function meets_wcag_aaa( string $color1, string $color2, bool $large_text = false ): bool {
+		$ratio = self::get_contrast_ratio( $color1, $color2 );
+
+		if ( $ratio === null ) {
+			return false;
+		}
+
+		// AAA standards: 7:1 for normal text, 4.5:1 for large text
+		$required_ratio = $large_text ? 4.5 : 7.0;
+
+		return $ratio >= $required_ratio;
+	}
+
+	/**
+	 * Adjust a color to meet minimum contrast ratio with another color.
+	 *
+	 * @param string $adjustable_color Color to adjust.
+	 * @param string $fixed_color      Color to contrast against.
+	 * @param float  $min_ratio        Minimum contrast ratio (default 4.5 for WCAG AA).
+	 *
+	 * @return string|null Adjusted hex color or null if cannot meet ratio.
+	 */
+	public static function adjust_for_contrast( string $adjustable_color, string $fixed_color, float $min_ratio = 4.5 ): ?string {
+		$current_ratio = self::get_contrast_ratio( $adjustable_color, $fixed_color );
+
+		if ( $current_ratio === null ) {
+			return null;
+		}
+
+		// Already meets requirement
+		if ( $current_ratio >= $min_ratio ) {
+			return $adjustable_color;
+		}
+
+		// Determine if we should lighten or darken
+		$should_darken = self::is_light( $fixed_color );
+
+		// Try adjusting in steps
+		for ( $i = 10; $i <= 100; $i += 10 ) {
+			$adjusted = $should_darken
+				? self::darken( $adjustable_color, $i )
+				: self::lighten( $adjustable_color, $i );
+
+			if ( $adjusted === null ) {
+				continue;
+			}
+
+			$ratio = self::get_contrast_ratio( $adjusted, $fixed_color );
+
+			if ( $ratio !== null && $ratio >= $min_ratio ) {
+				return $adjusted;
+			}
+		}
+
+		// If we can't meet the ratio, return the maximum adjustment
+		return $should_darken
+			? self::darken( $adjustable_color, 100 )
+			: self::lighten( $adjustable_color, 100 );
+	}
+
 }

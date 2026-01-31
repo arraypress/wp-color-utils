@@ -6,16 +6,22 @@
  * Focuses on practical, frequently-used operations with self-contained methods that have
  * no external dependencies. Each method handles its own validation and edge cases.
  *
- * @package ArrayPress\ColorUtils
- * @since   1.0.0
- * @author  ArrayPress
- * @license GPL-2.0-or-later
+ * @package     ArrayPress\ColorUtils
+ * @copyright   Copyright (c) 2025, ArrayPress Limited
+ * @license     GPL-2.0-or-later
+ * @since       1.0.0
+ * @author      David Sherlock
  */
 
 declare( strict_types=1 );
 
 namespace ArrayPress\ColorUtils;
 
+/**
+ * Class Color
+ *
+ * Utility functions for color manipulation and validation.
+ */
 class Color {
 
 	/**
@@ -148,6 +154,27 @@ class Color {
 	}
 
 	/**
+	 * Convert color to grayscale.
+	 *
+	 * Uses the luminance formula for perceptually accurate grayscale conversion.
+	 *
+	 * @param string $hex Hexadecimal color code.
+	 *
+	 * @return string|null Grayscale hex color or null if invalid.
+	 */
+	public static function grayscale( string $hex ): ?string {
+		$rgb = self::hex_to_rgb( $hex );
+		if ( $rgb === null ) {
+			return null;
+		}
+
+		// Use luminance formula for perceptually accurate grayscale
+		$gray = (int) round( 0.299 * $rgb['red'] + 0.587 * $rgb['green'] + 0.114 * $rgb['blue'] );
+
+		return self::rgb_to_hex( $gray, $gray, $gray );
+	}
+
+	/**
 	 * Check if a hex color is considered "dark".
 	 *
 	 * @param string $hex_color Hexadecimal color code.
@@ -175,6 +202,17 @@ class Color {
 	 */
 	public static function is_light( string $hex_color ): bool {
 		return ! self::is_dark( $hex_color );
+	}
+
+	/**
+	 * Check if a string is a valid hex color.
+	 *
+	 * @param string $hex Color string to validate.
+	 *
+	 * @return bool True if valid hex color.
+	 */
+	public static function is_valid_hex( string $hex ): bool {
+		return self::sanitize_hex( $hex ) !== null;
 	}
 
 	/**
